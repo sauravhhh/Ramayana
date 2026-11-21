@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ramayana — Rama's Journey</title>
+<link rel="stylesheet" href="leaflet/leaflet.css">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#0b0b0d;color:#f2f2f2}
+  header{padding:20px 16px 12px;max-width:1100px;margin:0 auto;text-align:center}
+  h1{font-size:26px;line-height:1.25;margin:0 0 6px}
+  h1 .om{color:#ff9933}
+  .sub{color:#c9c9c9;font-size:14.5px;line-height:1.55;margin:0 0 10px}
+  .routeline{font-size:13px;color:#e8e8e8;background:#16161a;border:1px solid #2a2a2e;border-left:4px solid #ff9933;border-radius:8px;padding:10px 12px;line-height:1.55;display:inline-block;text-align:left}
+  #map{height:64vh;min-height:400px;background:#0b0b0d;border-top:1px solid #222;border-bottom:1px solid #222}
+  .leaflet-popup-content-wrapper{background:#16161a;color:#f2f2f2;border-radius:10px}
+  .leaflet-popup-tip{background:#16161a}
+  .leaflet-popup-content{font-size:14px;line-height:1.55;margin:12px 14px}
+  .leaflet-popup-content h3{margin:0 0 2px;font-size:16px}
+  .leaflet-popup-content .kanda{color:#ff9933;font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
+  .leaflet-popup-content p{margin:8px 0}
+  .leaflet-container{font-family:inherit}
+  .num-marker{background:#ff9933;color:#1a1005;border:2px solid #fff3e0;border-radius:50%;width:30px;height:30px;line-height:26px;text-align:center;font-weight:800;font-size:15px;box-shadow:0 2px 8px rgba(0,0,0,.6)}
+  .legend{background:rgba(10,10,12,.88);color:#f2f2f2;padding:10px 12px;border-radius:10px;border:1px solid #333;font-size:13px;line-height:1.8}
+  .legend .swatch{display:inline-block;width:26px;height:0;border-top:3px dashed #ff9933;vertical-align:middle;margin-right:7px}
+  .legend .dot{display:inline-block;width:12px;height:12px;border-radius:50%;background:#ff9933;border:2px solid #fff3e0;margin-right:7px;vertical-align:-2px}
+  main{max-width:1100px;margin:0 auto;padding:18px 16px 8px}
+  main h2{font-size:19px;margin:0 0 4px}
+  .hint{color:#a9a9ad;font-size:13px;margin:0 0 16px}
+  .kanda-group{margin-bottom:22px}
+  .kanda-group>h3{font-size:16px;margin:0 0 10px;color:#ff9933;letter-spacing:.4px;text-transform:uppercase}
+  .stop{display:flex;gap:12px;background:#141417;border:1px solid #26262b;border-radius:12px;padding:13px 14px;margin-bottom:10px;cursor:pointer}
+  .stop:hover{border-color:#ff9933}
+  .stop .n{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:#ff9933;color:#1a1005;font-weight:800;font-size:15px;text-align:center;line-height:30px}
+  .stop h4{margin:0 0 3px;font-size:15.5px}
+  .stop h4 span{color:#a9a9ad;font-weight:400;font-size:13px}
+  .stop p{margin:0;font-size:14px;line-height:1.55;color:#d7d7db}
+  footer{max-width:1100px;margin:0 auto;padding:8px 16px 28px;color:#9a9aa0;font-size:12.5px;line-height:1.6;text-align:center}
+  footer a{color:#c9c9c9}
+  @media (max-width:600px){h1{font-size:22px}#map{height:54vh;min-height:340px}}
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="om">॥</span> Ramayana — Rama's Journey</h1>
+  <p class="sub">From childhood in Ayodhya to the final departure on the Sarayu — follow Lord Rama's life across the map, stop by stop.</p>
+  <p class="routeline">The saffron line is Rama's journey, in order — 13 stops, 11 places, across the seven Kandas. Tap any number on the map, or any stop below, to read its story.</p>
+</header>
+<div id="map"></div>
+<main>
+  <h2>The Journey, Stop by Stop</h2>
+  <p class="hint">Tap a stop to fly the map to it.</p>
+  <div id="timeline"></div>
+</main>
+<footer>
+  <p>Place locations are traditional identifications and approximate, based on the Valmiki Ramayana.</p>
+  <p>Map: Esri dark grey tiles. Country shapes are simplified.</p>
+</footer>
+<script src="leaflet/leaflet.js"></script>
+<script>
+var STOPS = [
+ {n:1,  place:"Ayodhya",        kanda:"Bala Kand",      lat:26.80, lon:82.20,
+  story:"Rama was born to King Dasharatha and Queen Kaushalya in Ayodhya, capital of Kosala, and grew up here with his brothers Bharata, Lakshmana and Shatrughna."},
+ {n:2,  place:"Siddhashrama",   kanda:"Bala Kand",      lat:25.95, lon:83.95,
+  story:"The sage Vishwamitra took the young Rama and Lakshmana here to guard his yajna; Rama killed the demoness Tadaka and drove off Maricha and Subahu."},
+ {n:3,  place:"Mithila (Janakpur)", kanda:"Bala Kand",  lat:26.73, lon:85.93,
+  story:"At Sita's swayamvara Rama broke Shiva's great bow and married Sita; his brothers married her sisters."},
+ {n:4,  place:"Ayodhya",        kanda:"Ayodhya Kand",   lat:26.80, lon:82.20,
+  story:"On Kaikeyi's two boons, Rama gave up the throne and left for 14 years of forest exile with Sita and Lakshmana."},
+ {n:5,  place:"Sringaverapura", kanda:"Ayodhya Kand",   lat:25.68, lon:81.72,
+  story:"Rama met Nishadraj Guha, king of the Nishadas, who helped him cross the Ganga."},
+ {n:6,  place:"Prayaga",        kanda:"Ayodhya Kand",   lat:25.43, lon:81.85,
+  story:"Sage Bharadwaja's ashram, where Rama rested on the way into the forest."},
+ {n:7,  place:"Chitrakoot",     kanda:"Ayodhya Kand",   lat:25.18, lon:80.87,
+  story:"Eleven years of the exile passed in the forest here. Bharata came and begged Rama to return — the meeting known as Bharat Milap."},
+ {n:8,  place:"Panchavati, Nashik", kanda:"Aranya Kand", lat:20.00, lon:73.78,
+  story:"On the Godavari river. Shurpanakha's attack happened here, and Ravana abducted Sita while Rama and Lakshmana were away; the vulture Jatayu died fighting Ravana."},
+ {n:9,  place:"Kishkindha & Pampa Sarovar, Hampi", kanda:"Kishkindha Kand", lat:15.33, lon:76.46,
+  story:"Rama met Hanuman and Sugriva, helped Sugriva defeat Vali, and the vanara army gathered to search for Sita. Shabari's ashram by Pampa Sarovar is part of this stop."},
+ {n:10, place:"Rameswaram",     kanda:"Yuddha Kand",    lat:9.29,  lon:79.31,
+  story:"Rama worshipped Shiva here and the vanara army built the Ram Setu (Adam's Bridge) across the sea to Lanka."},
+ {n:11, place:"Lanka",          kanda:"Yuddha Kand",    lat:8.00,  lon:80.70,
+  story:"The great war. Rama's army defeated Ravana, Sita was freed, and Vibhishana was crowned king of Lanka."},
+ {n:12, place:"Ayodhya",        kanda:"Uttara Kand",    lat:26.80, lon:82.20,
+  story:"After 14 years Rama returned to Ayodhya and was crowned king; his rule is remembered as Ram Rajya."},
+ {n:13, place:"Sarayu river, Gopratara ghat", kanda:"Uttara Kand", lat:26.76, lon:82.17,
+  story:"At the end of his earthly life, Rama entered the waters of the Sarayu, his Jal Samadhi."}
+];
+
+// One marker per distinct place, numbered by first appearance in the journey.
+var PLACES = [];
+STOPS.forEach(function(s){
+  var p = PLACES.filter(function(x){ return x.place===s.place; })[0];
+  if(!p){
+    p = {place:s.place, lat:s.lat, lon:s.lon, num:PLACES.length+1, stops:[]};
+    PLACES.push(p);
+  }
+  p.stops.push(s);
+});
+
+var map = L.map("map", {minZoom:4, maxZoom:10, worldCopyJump:true});
+map.fitBounds([[7.2,72.2],[28.2,87.6]]);
+L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+  attribution:'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ', maxZoom:16
+}).addTo(map);
+
+// Route line, in journey order (Ayodhya appears three times — the journey returns there).
+var routePts = STOPS.map(function(s){ return [s.lat, s.lon]; });
+L.polyline(routePts, {color:"#ff9933", weight:3, dashArray:"8 6", opacity:0.95}).addTo(map);
+
+var markers = {};  // place name -> marker
+PLACES.forEach(function(p){
+  var icon = L.divIcon({className:"", html:'<div class="num-marker">'+p.num+'</div>',
+    iconSize:[30,30], iconAnchor:[15,15]});
+  var html = "<h3>"+p.num+". "+p.place+"</h3>";
+  p.stops.forEach(function(s){
+    html += "<p><span class='kanda'>Stop "+s.n+" · "+s.kanda+"</span><br>"+s.story+"</p>";
+  });
+  var m = L.marker([p.lat, p.lon], {icon:icon}).addTo(map);
+  m.bindPopup(html);
+  markers[p.place] = m;
+});
+
+var legend = L.control({position:"bottomleft"});
+legend.onAdd = function(){
+  var d = L.DomUtil.create("div", "legend");
+  d.innerHTML = "<span class='swatch'></span>Rama's journey, in order<br>" +
+    "<span class='dot'></span>Place — tap for its story";
+  return d;
+};
+legend.addTo(map);
+
+// Timeline, grouped by Kanda in epic order.
+var KANDA_ORDER = ["Bala Kand","Ayodhya Kand","Aranya Kand","Kishkindha Kand","Yuddha Kand","Uttara Kand"];
+var tl = document.getElementById("timeline");
+KANDA_ORDER.forEach(function(kanda){
+  var stops = STOPS.filter(function(s){ return s.kanda===kanda; });
+  if(!stops.length) return;
+  var g = document.createElement("div");
+  g.className = "kanda-group";
+  g.innerHTML = "<h3>"+kanda+"</h3>";
+  stops.forEach(function(s){
+    var d = document.createElement("div");
+    d.className = "stop";
+    d.innerHTML = "<div class='n'>"+s.n+"</div><div><h4>"+s.place+
+      " <span>· Stop "+s.n+"</span></h4><p>"+s.story+"</p></div>";
+    d.onclick = function(){
+      var m = markers[s.place];
+      map.flyTo([s.lat, s.lon], Math.max(map.getZoom(), 7), {duration:0.9});
+      setTimeout(function(){ m.openPopup(); }, 950);
+    };
+    g.appendChild(d);
+  });
+  tl.appendChild(g);
+});
+</script>
+</body>
+</html>
