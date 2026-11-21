@@ -38,6 +38,18 @@
   .stop p{margin:0;font-size:14px;line-height:1.55;color:#d7d7db}
   footer{max-width:1100px;margin:0 auto;padding:8px 16px 28px;color:#9a9aa0;font-size:12.5px;line-height:1.6;text-align:center}
   footer a{color:#c9c9c9}
+  .journey-bar{max-width:1100px;margin:0 auto;padding:0 16px 12px;display:flex;gap:12px;align-items:center}
+  .play-btn{background:#ff9933;color:#1a1005;border:none;border-radius:999px;padding:10px 18px;font-size:14px;font-weight:800;cursor:pointer;flex:0 0 auto}
+  .play-btn:hover{background:#ffa94d}
+  .progress-wrap{flex:1;min-width:0}
+  #progressText{font-size:13px;color:#e8e8e8;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .track{height:6px;background:#26262b;border-radius:999px;overflow:hidden}
+  #progressFill{height:100%;width:0%;background:#ff9933;border-radius:999px}
+  .char{display:flex;align-items:center;justify-content:center;width:34px;height:34px}
+  .char svg{display:block;filter:drop-shadow(0 2px 3px rgba(0,0,0,.75))}
+  .vanara{display:flex;align-items:center;justify-content:center;width:18px;height:18px}
+  .vanara svg{display:block;animation:vhop .55s ease-in-out infinite alternate}
+  @keyframes vhop{from{transform:translateY(0)}to{transform:translateY(-3px)}}
   @media (max-width:600px){h1{font-size:22px}#map{height:54vh;min-height:340px}}
 </style>
 </head>
@@ -47,6 +59,13 @@
   <p class="sub">From childhood in Ayodhya to the final departure on the Sarayu — follow Lord Rama's life across the map, stop by stop.</p>
   <p class="routeline">The saffron line is Rama's journey, in order — 13 stops, 11 places, across the seven Kandas. Tap any number on the map, or any stop below, to read its story.</p>
 </header>
+<div class="journey-bar">
+  <button id="playBtn" class="play-btn">Play the journey</button>
+  <div class="progress-wrap">
+    <div id="progressText">13 stops · Ayodhya to the Sarayu — press Play</div>
+    <div class="track"><div id="progressFill"></div></div>
+  </div>
+</div>
 <div id="map"></div>
 <main>
   <h2>The Journey, Stop by Stop</h2>
@@ -153,6 +172,229 @@ KANDA_ORDER.forEach(function(kanda){
     g.appendChild(d);
   });
   tl.appendChild(g);
+});
+
+/* ---------- Journey animation: Play the journey ---------- */
+// Tiny inline-SVG figures. fig() draws one standing figure (feet at y=0,
+// head top near y=-31) at translate(x,y), scale s. No emoji, no images.
+function fig(x, y, s, o){
+  o = o || {};
+  var body = o.body || '#ff9933';
+  var head = o.head || body;
+  var p = '';
+  if(o.halo) p += '<circle cx="0" cy="-24" r="7.5" fill="none" stroke="#fff3e0" stroke-width="1" opacity="0.7"/>';
+  if(o.tail) p += '<path d="M-3 -18 Q-10 -22 -9 -29" fill="none" stroke="'+body+'" stroke-width="1.8" stroke-linecap="round"/>';
+  p += '<circle cx="0" cy="-24" r="3.4" fill="'+head+'"/>';
+  if(o.crown) p += '<path d="M-3.6 -26.4 L-1.8 -31 L0 -27.2 L1.8 -31 L3.6 -26.4 Z" fill="#ffd166"/>';
+  if(o.beard) p += '<path d="M-2 -20.5 L2 -20.5 L0 -15.5 Z" fill="#ffffff"/>';
+  p += '<rect x="-3" y="-21" width="6" height="9" rx="2" fill="'+body+'"/>';
+  if(o.robe){
+    p += '<path d="M-3 -12 L3 -12 L5 -1 L-5 -1 Z" fill="'+body+'"/>';
+  } else if(o.dress){
+    p += '<path d="M-3 -12 L3 -12 L4.5 -3 L-4.5 -3 Z" fill="'+o.dress+'"/>';
+  } else {
+    p += '<rect x="-3" y="-12" width="6" height="7" rx="2" fill="#fff3e0"/>';
+    if(o.kneel){
+      p += '<rect x="-4.5" y="-5" width="9" height="5" rx="2" fill="'+body+'"/>';
+    } else {
+      p += '<line x1="-1.5" y1="-5" x2="-4" y2="0" stroke="'+body+'" stroke-width="2" stroke-linecap="round"/>';
+      p += '<line x1="1.5" y1="-5" x2="4" y2="0" stroke="'+body+'" stroke-width="2" stroke-linecap="round"/>';
+    }
+  }
+  if(o.folded){
+    p += '<line x1="-2" y1="-18" x2="0" y2="-14" stroke="'+body+'" stroke-width="1.6" stroke-linecap="round"/>';
+    p += '<line x1="2" y1="-18" x2="0" y2="-14" stroke="'+body+'" stroke-width="1.6" stroke-linecap="round"/>';
+  }
+  if(o.bow || o.bigbow){
+    var y1 = o.bigbow ? -29 : -27, y2 = o.bigbow ? 1 : -1;
+    var qx = o.bigbow ? 18 : 15;
+    p += '<path d="M8 '+y1+' Q'+qx+' -14 8 '+y2+'" fill="none" stroke="#ff9933" stroke-width="2"/>';
+    p += '<line x1="8" y1="'+y1+'" x2="8" y2="'+y2+'" stroke="#ffd9a0" stroke-width="0.7"/>';
+    p += '<line x1="2.5" y1="-19" x2="7" y2="-15" stroke="'+body+'" stroke-width="2" stroke-linecap="round"/>';
+  }
+  if(o.sword){
+    p += '<line x1="2.5" y1="-19" x2="11" y2="-27" stroke="#dfe3e6" stroke-width="2" stroke-linecap="round"/>';
+  }
+  if(o.oar){
+    p += '<line x1="3" y1="-19" x2="12" y2="0" stroke="'+body+'" stroke-width="2" stroke-linecap="round"/>';
+  }
+  return '<g transform="translate('+x+' '+y+') scale('+s+')">'+p+'</g>';
+}
+function svgWrap(inner, vb, w){
+  return '<svg viewBox="'+vb+'" width="'+w+'" height="32" style="display:block">'+inner+'</svg>';
+}
+// Scene shown while paused at each stop; 'walk' is the travelling figure.
+var SCENES = {
+  walk:      function(){ return svgWrap(fig(15,31,1,{bow:true}), '0 0 32 32', 32); },
+  child:     function(){ return svgWrap(fig(16,31,0.72,{bow:true}), '0 0 32 32', 32); },
+  bowdraw:   function(){ return svgWrap(fig(13,31,0.95,{bow:true}) + '<line x1="17" y1="17" x2="31" y2="17" stroke="#ffd9a0" stroke-width="1.2"/>', '0 0 32 32', 32); },
+  greatbow:  function(){ return svgWrap(fig(16,31,1,{bigbow:true}), '0 0 32 32', 32); },
+  exile:     function(){ return svgWrap(fig(8,31,0.66,{bow:true}) + fig(18,31,0.62,{body:'#e85d75',head:'#f2c9a0',dress:'#e85d75'}) + fig(28,31,0.66,{}), '0 0 36 32', 34); },
+  guha:      function(){ return svgWrap(fig(11,31,0.85,{bow:true}) + fig(24,31,0.85,{body:'#8a6d3b',oar:true}), '0 0 36 32', 34); },
+  sage:      function(){ return svgWrap(fig(10,31,0.85,{bow:true}) + fig(24,31,0.8,{body:'#e8e8e8',robe:true,beard:true}), '0 0 32 32', 32); },
+  bharata:   function(){ return svgWrap(fig(10,31,0.85,{bow:true}) + fig(23,31,0.8,{body:'#ffb84d',kneel:true}), '0 0 32 32', 32); },
+  ravanasita:function(){ return svgWrap(fig(11,31,1.05,{body:'#3f7a4e',crown:true,sword:true}) + fig(25,19,0.55,{body:'#e85d75',head:'#f2c9a0',dress:'#e85d75'}), '0 0 32 32', 32); },
+  hanuman:   function(){ return svgWrap(fig(16,31,0.95,{body:'#f5e6c8',tail:true,kneel:true,folded:true}), '0 0 32 32', 32); },
+  shiva:     function(){ return svgWrap(fig(10,31,0.85,{kneel:true,folded:true}) + '<ellipse cx="25" cy="26" rx="4" ry="5" fill="#4a4a55"/><rect x="20" y="29" width="10" height="2" fill="#6a6a75"/>', '0 0 32 32', 32); },
+  battle:    function(){ return svgWrap(fig(9,31,0.9,{bow:true}) + fig(25,31,0.95,{body:'#3f7a4e',crown:true,sword:true}), '0 0 36 32', 34); },
+  crown:     function(){ return svgWrap(fig(16,31,1,{bow:true,crown:true}), '0 0 32 32', 32); },
+  depart:    function(){ return svgWrap(fig(16,31,0.95,{body:'#fff3e0',halo:true,folded:true}), '0 0 32 32', 32); }
+};
+var STOP_SCENE = {1:'child',2:'bowdraw',3:'greatbow',4:'exile',5:'guha',6:'sage',7:'bharata',8:'ravanasita',9:'hanuman',10:'shiva',11:'battle',12:'crown',13:'depart'};
+
+function vanaraSVG(color){
+  return '<svg viewBox="0 0 20 20" width="18" height="18" style="display:block">'
+    + '<path d="M13 5 Q18 8 15 13" fill="none" stroke="'+color+'" stroke-width="1.6" stroke-linecap="round"/>'
+    + '<circle cx="9" cy="6" r="2.8" fill="'+color+'"/>'
+    + '<rect x="6.5" y="9" width="5" height="6" rx="2" fill="'+color+'"/>'
+    + '<line x1="7.5" y1="15" x2="6" y2="19" stroke="'+color+'" stroke-width="1.5" stroke-linecap="round"/>'
+    + '<line x1="10.5" y1="15" x2="12" y2="19" stroke="'+color+'" stroke-width="1.5" stroke-linecap="round"/>'
+    + '</svg>';
+}
+function charIcon(svg){
+  return L.divIcon({className:'', html:'<div class="char">'+svg+'</div>', iconSize:[34,34], iconAnchor:[17,32]});
+}
+
+var STOP_PAUSE = 1200;    // ms paused at each stop
+var TRAVEL_TOTAL = 48000; // ms of travelling across all 12 segments
+var SETU_A = [9.29, 79.31];  // Rameswaram
+var SETU_B = [8.00, 80.70];  // Lanka
+var charMarker = null;
+var J = {state:'idle', stop:0, seg:0, phase:'stop', phaseStart:0, phaseElapsed:0, phaseDur:STOP_PAUSE, segDurs:[]};
+
+// Vanaras crossing the Ram Setu (Hanuman first, tail showing).
+var vanaras = [];
+['#f5e6c8', '#c9a06a', '#a97f4e'].forEach(function(color, i){
+  var icon = L.divIcon({className:'', html:'<div class="vanara">'+vanaraSVG(color)+'</div>', iconSize:[18,18], iconAnchor:[9,17]});
+  var m = L.marker(SETU_A, {icon:icon, interactive:false, zIndexOffset:900}).addTo(map);
+  vanaras.push({marker:m, t:0, period:[26000, 32000, 38000][i], phase:[0, 2.1, 4.2][i]});
+});
+
+function distKm(a, b){
+  var dLat = (b[0]-a[0])*111, dLon = (b[1]-a[1])*111*Math.cos(a[0]*Math.PI/180);
+  return Math.sqrt(dLat*dLat + dLon*dLon);
+}
+function computeSegDurs(){
+  var ws = [], sum = 0, i;
+  for(i=0; i<12; i++){
+    var w = Math.sqrt(Math.max(distKm(routePts[i], routePts[i+1]), 150));
+    ws.push(w); sum += w;
+  }
+  J.segDurs = ws.map(function(w){ return TRAVEL_TOTAL * w / sum; });
+}
+function setBtn(t){ document.getElementById('playBtn').innerText = t; }
+function setProgress(text, frac){
+  document.getElementById('progressText').innerText = text;
+  document.getElementById('progressFill').style.width = Math.round(frac*100) + '%';
+}
+function setCharScene(key){ if(charMarker) charMarker.setIcon(charIcon(SCENES[key]())); }
+
+function startJourney(){
+  computeSegDurs();
+  var s0 = STOPS[0];
+  if(!charMarker){
+    charMarker = L.marker([s0.lat, s0.lon], {icon: charIcon(SCENES.child()), interactive:false, zIndexOffset:1000}).addTo(map);
+  } else {
+    charMarker.setLatLng([s0.lat, s0.lon]);
+    charMarker.setIcon(charIcon(SCENES.child()));
+    charMarker.addTo(map);
+  }
+  J.state = 'playing'; J.stop = 0; J.phase = 'stop';
+  J.phaseStart = performance.now(); J.phaseDur = STOP_PAUSE;
+  markers[s0.place].openPopup();
+  setProgress('Stop 1 of 13 — Ayodhya', 1/13);
+  setBtn('Pause');
+  map.panTo([s0.lat, s0.lon], {animate:true, duration:0.8});
+}
+function pauseJourney(){
+  if(J.state !== 'playing') return;
+  J.state = 'paused';
+  J.phaseElapsed = performance.now() - J.phaseStart;
+  map.stop();
+  setBtn('Resume');
+}
+function resumeJourney(){
+  if(J.state !== 'paused') return;
+  J.state = 'playing';
+  J.phaseStart = performance.now() - J.phaseElapsed;
+  if(J.phase === 'travel'){
+    var target = STOPS[J.seg+1];
+    var remaining = Math.max(0.2, (J.phaseDur - J.phaseElapsed)/1000);
+    map.panTo([target.lat, target.lon], {animate:true, duration: remaining});
+  }
+  setBtn('Pause');
+}
+function finishJourney(){
+  J.state = 'done';
+  setBtn('Play again');
+  setProgress('Journey complete — Ayodhya to the Sarayu', 1);
+}
+function arriveAt(idx, now){
+  J.stop = idx;
+  var s = STOPS[idx];
+  charMarker.setLatLng([s.lat, s.lon]);
+  setCharScene(STOP_SCENE[s.n]);
+  markers[s.place].openPopup();
+  J.phase = 'stop';
+  J.phaseStart = now;
+  setProgress('Stop '+s.n+' of 13 — '+s.place, s.n/13);
+}
+function updateJourney(now){
+  var elapsed = now - J.phaseStart;
+  if(J.phase === 'stop'){
+    if(elapsed >= STOP_PAUSE){
+      if(J.stop >= 12){ finishJourney(); return; }
+      J.seg = J.stop;
+      J.phase = 'travel';
+      J.phaseDur = J.segDurs[J.seg];
+      J.phaseStart = now;
+      setCharScene('walk');
+      map.closePopup();
+      var target = STOPS[J.seg+1];
+      map.panTo([target.lat, target.lon], {animate:true, duration: J.phaseDur/1000});
+      setProgress('Stop '+(J.seg+2)+' of 13 — '+target.place, (J.seg+1)/13);
+    }
+  } else {
+    var t = Math.min(elapsed / J.phaseDur, 1);
+    var a = routePts[J.seg], b = routePts[J.seg+1];
+    var lat = a[0] + (b[0]-a[0])*t, lon = a[1] + (b[1]-a[1])*t;
+    charMarker.setLatLng([lat, lon]);
+    setProgress('Stop '+(J.seg+2)+' of 13 — '+STOPS[J.seg+1].place, (J.seg+1 + t)/13);
+    if(t >= 1) arriveAt(J.seg+1, now);
+  }
+}
+function tick(now){
+  requestAnimationFrame(tick);
+  var follow = (J.state === 'playing' && J.phase === 'travel' && J.seg === 9);
+  var mainT = 0;
+  if(follow) mainT = Math.min((now - J.phaseStart) / J.phaseDur, 1);
+  vanaras.forEach(function(v, i){
+    var target;
+    if(follow){
+      target = Math.max(0, Math.min(1, mainT + (0.05 - i*0.05)));
+    } else {
+      target = 0.5 - 0.5*Math.cos(2*Math.PI*(now / v.period) + v.phase);
+    }
+    v.t += (target - v.t) * (follow ? 0.18 : 0.07);
+    var lat = SETU_A[0] + (SETU_B[0]-SETU_A[0])*v.t;
+    var lon = SETU_A[1] + (SETU_B[1]-SETU_A[1])*v.t;
+    v.marker.setLatLng([lat, lon]);
+  });
+  if(J.state === 'playing') updateJourney(now);
+}
+requestAnimationFrame(tick);
+
+document.getElementById('playBtn').onclick = function(){
+  if(J.state === 'playing') pauseJourney();
+  else if(J.state === 'paused') resumeJourney();
+  else startJourney();
+};
+// Pause the journey when the user taps a place or a timeline stop themselves.
+Object.keys(markers).forEach(function(k){
+  markers[k].on('click', function(){ if(J.state === 'playing') pauseJourney(); });
+});
+document.querySelectorAll('.stop').forEach(function(el){
+  el.addEventListener('click', function(){ if(J.state === 'playing') pauseJourney(); });
 });
 </script>
 </body>
